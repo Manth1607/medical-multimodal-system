@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.streamlit/
+django_auth/db.sqlite3
+error_log.txt
+run_all_output.txt
+.vscode/
+tests/__pycache__/

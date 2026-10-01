@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mms_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  api:
+    build: .
+    container_name: mms_api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - mongodb
+
+  dashboard:
+    build: .
+    container_name: mms_dashboard
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+
+  auth:
+    build: .
+    container_name: mms_auth
+    command: python django_auth/manage.py runserver 0.0.0.0:8080
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:

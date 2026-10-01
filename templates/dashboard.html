@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block content %}
+<div class="card" id="loginCard">
+  <h2>Login</h2>
+  <div style="margin-bottom: 10px;">
+    <input type="text" id="username" placeholder="Username" />
+  </div>
+  <div style="margin-bottom: 10px;">
+    <input type="password" id="password" placeholder="Password" />
+  </div>
+  <button id="loginBtn">Login</button>
+  <div id="loginOutput"></div>
+</div>
+
+<h1 style="text-align: center; margin-bottom: 1rem;">Medical Multimodal Diagnostic Dashboard</h1>
+<button id="runBtn" style="margin-bottom: 20px;">Run Prediction</button>
+<div id="output"></div>
+<script>
+  const loginCard = document.getElementById('loginCard');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginOutput = document.getElementById('loginOutput');
+  
+  let accessToken = localStorage.getItem('access_token');
+  if (accessToken) {
+    loginCard.style.display = 'none';
+  }
+
+  loginBtn.addEventListener('click', async () => {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    try {
+      const resp = await fetch('/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        accessToken = data.access_token;
+        localStorage.setItem('access_token', accessToken);
+        loginCard.style.display = 'none';
+        loginOutput.innerHTML = '';
+      } else {
+        loginOutput.innerHTML = `<p style='color:red'>${data.detail}</p>`;
+      }
+    } catch (e) {
+      loginOutput.innerHTML = `<p style='color:red'>Error: ${e}</p>`;
+    }
+  });
+
+  const btn = document.getElementById('runBtn');
+  const out = document.getElementById('output');
+  const payload = {
+    patient_info: {},
+    tabular: Array(14).fill(0),
+    image: Array.from({length:224},()=>Array(224).fill(0)),
+    text: ""
+  };
+  btn.addEventListener('click', async () => {
+    out.innerHTML = '<p>Running...</p>';
+    try {
+      const headers = {'Content-Type': 'application/json'};
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+      
+      const resp = await fetch('/predict', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+      
+      if (resp.status === 401) {
+          out.innerHTML = `<p style='color:red'>Unauthorized: Please login first.</p>`;
+          loginCard.style.display = 'block';
+          localStorage.removeItem('access_token');
+          accessToken = null;
+          return;
+      }
+      const data = await resp.json();
+      render(data);
+    } catch (e) {
+      out.innerHTML = `<p style='color:red'>Error: ${e}</p>`;
+    }
+  });
+  function render(data) {
+    const statusClass = data.diagnostic_label.includes('CRITICAL') ? 'critical' : 'stable';
+    const html = `
+      <div class="card">
+        <h2 style="text-transform: uppercase; margin-bottom: 0;">${data.diagnostic_label}</h2>
+      </div>
+      <div class="card">
+        <div class="content-text"><strong>Confidence:</strong> Critical ${(data.confidence_scores.class_1_critical*100).toFixed(1)}% | Stable ${(data.confidence_scores.class_0_stable*100).toFixed(1)}%</div>
+      </div>
+      <div class="card">
+        <div class="content-text"><strong>OOD:</strong> ${data.ood ? 'Yes' : 'No'}${data.ood ? ' &ndash; ' + data.ood_reasons.join(', ') : ''}</div>
+      </div>
+      <div class="card">
+        <strong>Clinical Risks:</strong>
+        <ul class="content-text">${data.clinical_risk_reasons.map(r=>`<li>${r}</li>`).join('')}</ul>
+      </div>
+      <div class="card">
+        <strong>Doctor Recommendations:</strong>
+        <ul class="content-text">${data.doctor_recommendations.map(r=>`<li>${r}</li>`).join('')}</ul>
+      </div>
+    `;
+    out.innerHTML = html;
+  }
+</script>
+{% endblock %}

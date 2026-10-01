@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# Database
+*.db
+# (You may want to commit clinical_data.db.sample instead)
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# MacOS
+.DS_Store
