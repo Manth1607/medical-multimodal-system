@@ -56,6 +56,17 @@ Or start both FastAPI and Streamlit together:
 python scripts/run_unified_app.py
 ```
 
+### Docker Deployment
+1. Install Docker Engine/Desktop with the Docker Compose plugin.
+2. Create a `.env` file from `.env.example` and set a unique `SECRET_KEY` and strong `INITIAL_ADMIN_PASSWORD`. Add API/email credentials only when those features are needed.
+3. Build and start the API and dashboard:
+   ```bash
+   docker compose up --build -d
+   ```
+4. Open the dashboard at `http://localhost:8501`; the API is available at `http://localhost:8000`.
+
+The SQLite database is stored in the persistent `clinical_data` Docker volume and shared by both services. Stop the services with `docker compose down`; the database volume is retained. To remove the database as well, use `docker compose down -v`.
+
 ## Security
 - Authentication is handled via JWT (JSON Web Tokens).
 - Passwords are encrypted using `bcrypt`.

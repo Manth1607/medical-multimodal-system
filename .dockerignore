@@ -1,9 +1,13 @@
 .venv/
+.git/
 __pycache__/
 *.pyc
 .env
 .streamlit/
 django_auth/db.sqlite3
+database/*.db
+database/*.db-*
+logs/
 error_log.txt
 run_all_output.txt
 .vscode/

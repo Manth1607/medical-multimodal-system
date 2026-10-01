@@ -2,20 +2,21 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies required for ML packages (like easyocr, opencv, etc.)
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
     libglib2.0-0 \
+    libgomp1 \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Expose ports for various services
-EXPOSE 8000 8501 8080
+EXPOSE 8000 8501
 
-# Default command (can be overridden in docker-compose.yml)
-CMD ["bash"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

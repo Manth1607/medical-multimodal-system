@@ -1,54 +1,37 @@
-version: '3.8'
-
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: mms_mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-
   api:
     build: .
-    container_name: mms_api
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      DATABASE_PATH: /data/clinical_data.db
     volumes:
-      - .:/app
-    depends_on:
-      - mongodb
+      - clinical_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   dashboard:
     build: .
-    container_name: mms_dashboard
-    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+    restart: unless-stopped
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
     ports:
       - "8501:8501"
     env_file:
       - .env
-    volumes:
-      - .:/app
     depends_on:
-      - api
-
-  auth:
-    build: .
-    container_name: mms_auth
-    command: python django_auth/manage.py runserver 0.0.0.0:8080
-    ports:
-      - "8080:8080"
+      api:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-    env_file:
-      - .env
+      DATABASE_PATH: /data/clinical_data.db
     volumes:
-      - .:/app
-    depends_on:
-      - mongodb
+      - clinical_data:/data
 
 volumes:
-  mongodb_data:
+  clinical_data:

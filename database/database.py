@@ -5,7 +5,10 @@ from typing import Dict, List, Optional
 from pathlib import Path
 import bcrypt
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'clinical_data.db')
+DB_PATH = os.getenv(
+    'DATABASE_PATH',
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'clinical_data.db'),
+)
 
 def init_database():
     """Initialize the SQLite database with required tables."""
