@@ -36,9 +36,19 @@ def send_medical_report_email(to_email: str, patient_name: str, pdf_bytes: bytes
             filename=f"Medical_Report_{patient_name.replace(' ', '_')}.pdf"
         )
 
+        import socket
+        # Force IPv4 to prevent Network is unreachable (Errno 101) on IPv6
+        orig_getaddrinfo = socket.getaddrinfo
+        def _ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+            return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+        socket.getaddrinfo = _ipv4_getaddrinfo
+
         with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
             server.login(smtp_user, smtp_pass)
             server.send_message(msg)
+            
+        # Restore original getaddrinfo
+        socket.getaddrinfo = orig_getaddrinfo
             
         logger.info(f"Report emailed successfully to {to_email}")
         return True, "Success"
