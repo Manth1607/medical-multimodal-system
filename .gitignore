@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,21 +8,52 @@ __pycache__/
 venv/
 ENV/
 env/
+env.bak/
+venv.bak/
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 
+# Environment variables / secrets
+.env
+.envrc
+
 # Database
 *.db
-# (You may want to commit clinical_data.db.sample instead)
+db.sqlite3
+db.sqlite3-journal
 
 # Logs
 logs/
 *.log
 
-# Environment variables
-.env
+# Build / distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
 
-# MacOS
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Django
+local_settings.py
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# OS
 .DS_Store
+
+# Temporary files
+tempCodeRunnerFile.py
