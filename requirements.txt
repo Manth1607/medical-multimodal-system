@@ -18,5 +18,5 @@ python-multipart
 plotly
 fpdf2
 pydicom
-google-generativeai
+google-genai
 python-dotenv
