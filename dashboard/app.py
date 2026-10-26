@@ -20,7 +20,7 @@ from core.clinical_reference import check_value_status, CLINICAL_REFERENCE_RANGE
 from database.database import DatabaseManager, init_database
 from utils.ocr_utils import set_tesseract_path, image_to_text
 from ml.prediction_service import run_prediction
-from api.chat_service import get_chat_response, get_ai_recommendations
+from api.chat_service import get_chat_response, get_ai_recommendations, get_gemini_api_key
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Medical AI Command Center", page_icon="🏥", layout="wide", initial_sidebar_state="expanded")
@@ -258,8 +258,8 @@ with st.sidebar:
         
         lang = st.selectbox("Language / ભાષા", ["English 🇺🇸", "Gujarati 🕉️", "Hindi 🇮🇳"], label_visibility="collapsed", key="chat_lang")
         
-        if not os.getenv("GEMINI_API_KEY"):
-            st.error("⚠️ Missing 'GEMINI_API_KEY' in backend `.env` file.")
+        if not get_gemini_api_key():
+            st.error("⚠️ Missing or invalid 'GEMINI_API_KEY'. Please set a valid Gemini API key in Railway Variables (or local `.env`).")
         else:
             if "chat_messages" not in st.session_state:
                 st.session_state.chat_messages = [{"role": "model", "content": "Hello Doctor. How can I assist you with the patient? (નમસ્તે ડૉક્ટર, હું પેશન્ટ વિશે તમારી શું મદદ કરી શકું?)"}]

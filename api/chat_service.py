@@ -9,8 +9,45 @@ load_dotenv()
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 
+def get_gemini_api_key() -> str | None:
+    """Retrieve and sanitize the Gemini API key from environment or Streamlit secrets."""
+    key = os.getenv("GEMINI_API_KEY")
+
+    if not key:
+        # Check Streamlit secrets if running in Streamlit Cloud / environment
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+                key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            pass
+
+    if not key:
+        return None
+
+    # Sanitize key: strip whitespace and accidental surrounding quotes
+    key = str(key).strip().strip("'\"")
+
+    # Reject placeholder values from example configurations
+    placeholders = {
+        "your-api-key-here",
+        "your_api_key_here",
+        "your-gemini-api-key-here",
+        "your_gemini_api_key_here",
+        "placeholder",
+        "none",
+        "null",
+        "",
+    }
+    if key.lower() in placeholders:
+        return None
+
+    return key
+
+
 def initialize_gemini():
-    api_key = os.getenv("GEMINI_API_KEY")
+    """Initialize Google GenAI client using the sanitized API key."""
+    api_key = get_gemini_api_key()
 
     if not api_key:
         return None
@@ -22,11 +59,46 @@ def initialize_gemini():
         return None
 
 
+def _format_gemini_error(error: Exception) -> str:
+    """Format Gemini API errors into clear, actionable, and secure messages."""
+    error_msg = str(error)
+
+    if "API_KEY_INVALID" in error_msg or "API key not valid" in error_msg:
+        return (
+            "⚠️ The configured Gemini API key is invalid or unauthorized. "
+            "Please verify that 'GEMINI_API_KEY' in your Railway environment variables "
+            "(Variables tab) is a valid, active key from Google AI Studio "
+            "(https://aistudio.google.com/) without extra quotes or spaces."
+        )
+    elif "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+        return (
+            "⚠️ Gemini API rate limit or quota exceeded. "
+            "Please check your Google AI Studio quota or try again in a few moments."
+        )
+    elif "NOT_FOUND" in error_msg or "404" in error_msg:
+        return (
+            f"⚠️ Configured Gemini model '{MODEL_NAME}' was not found. "
+            "Please check your GEMINI_MODEL setting in your environment variables."
+        )
+    elif "PERMISSION_DENIED" in error_msg or "403" in error_msg:
+        return (
+            "⚠️ Access denied by Google Gemini API. "
+            "Please verify that the Generative Language API is enabled for your project/key."
+        )
+
+    # Generic clean error without leaking sensitive tokens
+    first_line = error_msg.split("\n")[0]
+    return f"⚠️ Error generating AI response: {first_line}"
+
+
 def get_chat_response(messages, patient_context, language):
     client = initialize_gemini()
 
     if not client:
-        return "⚠️ API Key is missing. Please add your GEMINI_API_KEY to the .env file or enter it in the sidebar."
+        return (
+            "⚠️ Gemini API Key is missing or not configured. "
+            "Please configure 'GEMINI_API_KEY' in your Railway Variables or local .env file."
+        )
 
     try:
         # Build the system instructions
@@ -95,17 +167,20 @@ DOCTOR'S QUESTION:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
-                return f"⚠️ An error occurred while communicating with the AI: {error_msg}"
+                return _format_gemini_error(e)
 
     except Exception as e:
-        return f"⚠️ An error occurred while communicating with the AI: {str(e)}"
+        return _format_gemini_error(e)
 
 
 def get_ai_recommendations(patient_context, language="Gujarati 🕉️"):
     client = initialize_gemini()
 
     if not client:
-        return "⚠️ API Key is missing. Cannot generate recommendations."
+        return (
+            "⚠️ Gemini API Key is missing or not configured. "
+            "Please configure 'GEMINI_API_KEY' in your Railway Variables or local .env file."
+        )
 
     try:
         prompt = f"""
@@ -151,8 +226,9 @@ REQUESTED LANGUAGE:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
-                return f"⚠️ Error generating recommendations: {error_msg}"
+                return _format_gemini_error(e)
 
     except Exception as e:
-        return f"⚠️ Error generating recommendations: {str(e)}"
+        return _format_gemini_error(e)
+
 
